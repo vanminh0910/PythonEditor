@@ -69,6 +69,13 @@ Nicholas and Damien.
     </head>
     <body>
         <script type="application/javascript">
+            if (navigator.appVersion.indexOf("MSIE 9") !== -1 || navigator.appVersion.indexOf("MSIE 8") !== -1 || navigator.appVersion.indexOf("MSIE 7") !== -1)
+            {
+                document.write('<a href="https://www.microsoft.com/en-gb/download/internet-explorer.aspx">Please upgrade to IE 10 or greater.</a>');
+                document.execCommand('Stop');
+            }
+        </script>
+        <script type="application/javascript">
             // VERSION INFORMATION
             EDITOR_VERSION = "1.1.2";
             UPY_VERSION = "1.0.1";
@@ -333,6 +340,7 @@ Nicholas and Damien.
             script('static/js/hterm_all.js');
         }
         </script>
+        <script src="static/js/polyfill.min.js" type="application/javascript"></script>
         <script src="static/js/ResizeSensor.js"></script>
         <script src="static/js/ElementQueries.js"></script>
         <script src="lzma/lzma_worker.js"></script>
