@@ -606,13 +606,11 @@ function web_editor(config) {
                         var ext = (/[.]/.exec(f.name)) ? /[^.]+$/.exec(f.name) : null;
                         var reader = new FileReader();
                         if (ext == 'py') {
-                            setName(f.name.replace('.py', ''));
                             reader.onload = function(e) {
                                 loadPy(f.name, e.target.result);
                             };
                             reader.readAsText(f);
                         } else if (ext == 'hex') {
-                            setName(f.name.replace('.hex', ''));
                             reader.onload = function(e) {
                                 loadHex(f.name, e.target.result);
                             };
@@ -798,13 +796,11 @@ function web_editor(config) {
         var ext = (/[.]/.exec(file.name)) ? /[^.]+$/.exec(file.name) : null;
         var reader = new FileReader();
         if (ext == 'py') {
-            setName(file.name.replace('.py', ''));
             reader.onload = function(e) {
                 loadPy(file.name, e.target.result);
             };
             reader.readAsText(file);
         } else if (ext == 'hex') {
-            setName(file.name.replace('.hex', ''));
             reader.onload = function(e) {
                 loadHex(file.name, e.target.result);
             };
