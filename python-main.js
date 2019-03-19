@@ -1038,6 +1038,7 @@ function setupHterm(){
             // Toggle visibility
             if($(".helpsupport_container").css("display") == "none"){
                 $(".helpsupport_container").css("display", "flex");
+                $(".helpsupport_container").css("display", "-ms-flexbox"); // IE10 support
             } else {
                 $(".helpsupport_container").css("display", "none");
             }
@@ -1048,7 +1049,7 @@ function setupHterm(){
         // Add document click listener
         document.body.addEventListener('click',function(event) {
             // Close helpsupport if the click isn't on a descendent of #command-help
-            if(!event.target.closest('.helpsupport_container') || event.target.tagName.toLowerCase() === 'a')
+            if($(event.target).closest('.helpsupport_container').length == 0 || $(event.target).prop("tagName").toLowerCase() === 'a')
                 $(".helpsupport_container").css("display", "none");
         });
     }
