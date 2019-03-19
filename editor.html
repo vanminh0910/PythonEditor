@@ -335,7 +335,7 @@ Nicholas and Damien.
             type="application/javascript"></script>
         <script>
         // Load DAPjs and hterm if WebUSB exists
-        if(typeof navigator.usb != undefined)
+        if(navigator.usb)
         {
             script('static/js/dap.bundle.js');
             script('static/js/hterm_all.js');
