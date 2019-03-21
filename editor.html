@@ -87,13 +87,12 @@ Nicholas and Damien.
             </div>
             <div class="load-form">
                 <form id="load-form-form">
-                    <input type="file" name="load-form-file-upload"/><br/>
-                    <input type="submit" value="{{ submit }}"/>
+                  <input type="file" style="display: none" name="load-form-file-upload" id="file-upload-input">
                 </form>
             </div>
             <div id="load-alt">
                 <p><a href="#" class="load-form load-toggle">{{ toggle-drop }}</a></p>
-                <p><a href="#" class="load-drag-target load-toggle">{{ toggle-file }}</a></p>
+                <p><a href="#" id="file-upload-link" class="load-drag-target load-toggle">{{ toggle-file }}</a></p>
             </div>
 
             <h2><i class="fa fa-folder"></i> <strong>{{ fs-title }}</strong></h2>
@@ -109,24 +108,21 @@ Nicholas and Damien.
             </table>
             <div class="fs-file-list" id="fs-file-list">
                 <table>
-                  <thead>
-                      <tr>
-                          <td>Filename</td>
-                          <td>Type</td>
-                          <td>Size</td>
-                          <td></td>
-                      </tr>
-                  </thead>
-                  <tbody>
-                  </tbody>
-              </table>
+                    <thead>
+                        <tr>
+                            <td>Filename</td>
+                            <td>Type</td>
+                            <td>Size</td>
+                            <td></td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
             </div>
-            <div class="fs-form-wrapper">
-              <form id="fs-form">
-                  <input type="button" id="fs-form-file-upload-button" value="{{ fs-add-file }}">
-                  <input type="file" style="display: none" name="fs-form-file-upload" id="fs-form-file-upload" multiple>
-                  <input type="submit" style="display: none" id="fs-form-submit-button" value="{{ submit }}"/>
-              </form>
+            <div>
+                <input type="button" id="fs-file-upload-button" value="{{ fs-add-file }}">
+                <input type="file" style="display: none" name="fs-file-upload-input" id="fs-file-upload-input" multiple>
             </div>
         </script>
         <script id="snippet-template" type="x-tmpl-mustache">
@@ -397,12 +393,15 @@ web_editor({
         'no_script': 'Hex file does not contain a Python script.',
         'no_main': 'The hex file does not contain a main.py file.',
         'cant_add_file': 'Could not add file to the system:',
-        'module_added': 'A module has been added to the filesystem.'
+        'module_added': 'The "{{module_name}}" module has been added to the filesystem.',
+        'module_out_of_space': 'Could not add file to the system as there is no storage space left.'
       },
       'confirms': {
         'quit': "Some of your changes have not been saved. Quit anyway?",
         'blocks': "You have unsaved code. Using blocks will change your code. You may lose your changes. Do you want to continue?",
-        'main_replace': 'Adding a main.py file will replace the code in the editor!',
+        'replace_main': 'Adding a main.py file will replace the code in the editor!',
+        'replace_file': 'Do you want to replace the "{{file_name}}" file?',
+        'replace_module': 'Do you want to replace the "{{module_name}}" module?'
       },
       'code': {
         'start': "# Add your Python code here. E.g.\n" +

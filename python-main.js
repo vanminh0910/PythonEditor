@@ -342,7 +342,8 @@ function web_editor(config) {
         if (codeStr.length) {
             var codeLines = codeStr.split(/\r?\n/);
             // Only look at the first three lines
-            for (var i = 0; i < 3; i++) {
+            var loopEnd = Math.min(3, codeLines.length);
+            for (var i = 0; i < loopEnd; i++) {
                 if (codeLines[i].indexOf('# microbit-module:') == 0) {
                     isModule = true;
                 }
@@ -351,10 +352,19 @@ function web_editor(config) {
         return isModule;
     }
 
-    // Loads Python code into the editor and filesystem main.py, keeps the rest of files
+    // Loads Python code into the editor and/or filesystem
     function loadPy(filename, codeStr) {
         var isModule = isPyModule(codeStr);
+        var moduleName = filename.replace('.py', '');
         filename = isModule ? filename : 'main.py';
+        var showModuleLoadedAlert = true;
+        if (isModule && micropythonFs.exists(filename)) {
+            if (!confirm(config.translate.confirms.replace_module.replace('{{module_name}}', moduleName))) {
+                return;
+            }
+            // A confirmation box to replace the module has already been accepted
+            showModuleLoadedAlert = false;
+        }
         if (codeStr) {
             try {
                 micropythonFs.write(filename, codeStr);
@@ -365,9 +375,15 @@ function web_editor(config) {
             return alert(config.translate.alerts.empty);
         }
         if (isModule) {
-            alert(config.translate.alerts.module_added);
+            if (micropythonFs.getStorageRemaining() < 0){
+                micropythonFs.remove(filename);
+                return alert(config.translate.alerts.module_out_of_space);
+            }
+            if (showModuleLoadedAlert) {
+                alert(config.translate.alerts.module_added.replace('{{module_name}}', moduleName));
+            }
         } else {
-            setName(filename.replace('.py', ''));
+            setName(moduleName);
             setDescription(config.translate.drop.python);
             EDITOR.setCode(codeStr);
             EDITOR.ACE.gotoLine(EDITOR.ACE.session.getLength());
@@ -382,7 +398,10 @@ function web_editor(config) {
         var tryOldMethod = false;
         try {
             // If hexStr is parsed correctly it formats the file system before adding the new files
-            importedFiles = micropythonFs.importFilesFromIntelHex(hexStr, true, true);
+            importedFiles = micropythonFs.importFilesFromIntelHex(hexStr, {
+                overwrite: true,
+                formatFirst:true
+            });
             // Check if imported files includes a main.py file
             if (importedFiles.indexOf('main.py') > -1) {
                 code = micropythonFs.read('main.py');
@@ -404,9 +423,8 @@ function web_editor(config) {
                 if (!importedFiles.length) {
                     errorMsg += config.translate.alerts.no_script + '\n';
                     errorMsg += e.message;
-                    alert(config.translate.alerts.no_python + '\n\n' +
+                    return alert(config.translate.alerts.no_python + '\n\n' +
                             config.translate.alerts.error + errorMsg);
-                    return;
                 }
             }
         }
@@ -416,12 +434,41 @@ function web_editor(config) {
         EDITOR.ACE.gotoLine(EDITOR.ACE.session.getLength());
     }
 
+    // Function for adding file to filesystem
+    function loadFileToFilesystem(filename, fileBytes) {
+        // Check if file already exists and confirm overwrite
+        if (filename !== 'main.py' && micropythonFs.exists(filename)) {
+            if (!confirm(config.translate.confirms.replace_file.replace('{{file_name}}', filename))) {
+                return;
+            }
+        }
+        // For main.py confirm if the user wants to replace the editor content
+        if (filename === 'main.py' && !confirm(config.translate.confirms.replace_main)) {
+            return;
+        }
+        try {
+            micropythonFs.write(filename, fileBytes);
+            // Check if the filesystem has run out of space
+            var _ = micropythonFs.getIntelHex();
+        } catch(e) {
+            if (micropythonFs.exists(filename)) {
+                micropythonFs.remove(filename);
+            }
+            return alert(config.translate.alerts.cant_add_file + filename + '\n' + e.message);
+        }
+        if (filename == 'main.py') {
+            // TODO: This will probably break in IE10
+            var utf8 = new TextDecoder('utf-8').decode(fileBytes);
+            EDITOR.setCode(utf8);
+        }
+    }
+
     // Update the widget that shows how much space is used in the filesystem
     function updateStorageBar() {
         var modulesSize = 0;
         var otherSize = 0;
         var mainSize = 0;
-        var totalSpace = micropythonFs.getFsSize();
+        var totalSpace = micropythonFs.getStorageSize();
         try {
             micropythonFs.write('main.py', EDITOR.getCode());
             mainSize = micropythonFs.size('main.py');
@@ -464,48 +511,50 @@ function web_editor(config) {
         }
     }
 
-    // Function for adding file to filesystem
-    function filesystemAdd(files, updateUiCb) {
-        Array.from(files).forEach(function(file) {
-            // Check if file already exists
-            if (micropythonFs.exists(file.name) && file.name !== 'main.py') {
-                alert(file.name + ' already exists in the file system!');
-                return;
-            }
-            // Attempt to add file to FS
-            var fileReader = new FileReader();
-            fileReader.onloadend = function (e) {
-                var arrayBuffer = new Uint8Array(e.target.result);
-                // Check if file is main.py
-                if (file.name == 'main.py') {
-                    if (!confirm(config.translate.confirms.main_replace)) {
-                        return;
-                    }
-                    // TODO: This will probably break in IE10
-                    var utf8 = new TextDecoder('utf-8').decode(arrayBuffer);
-                    EDITOR.setCode(utf8);
-                }
-                try {
-                    micropythonFs.write(file.name, arrayBuffer);
-                    // Check if the filesystem has run out of space
-                    micropythonFs.getIntelHex();
-                } catch(e) {
-                    if (micropythonFs.exists(file.name)) {
-                        micropythonFs.remove(file.name);
-                    }
-                    return alert(config.translate.alerts.cant_add_file + file.name + '\n' + e.message);
-                }
-                updateUiCb(file.name, file.size);
-            };
-            fileReader.readAsArrayBuffer(file);
+    // Regenerate the table showing the file list and call for the storage bar to be updated
+    var updateFileTables = function() {
+        // Delete the current table body content and add rows file by file
+        $('.fs-file-list table tbody').empty();
+        micropythonFs.ls().forEach(function(filename) {
+            var pseudoUniqueId = Math.random().toString(36).substr(2, 9);
+            // Check for main.py to exclude it from the table list
+            if (filename === 'main.py') return;
+            var fileType = (/[.]/.exec(filename)) ? /[^.]+$/.exec(filename) : "";
+            $('.fs-file-list table tbody').append(
+                '<tr><td>' + filename + '</td>' +
+                '<td>' + fileType + '</td>' +
+                '<td>' + (micropythonFs.size(filename)/1024).toFixed(2) + ' Kb</td>' +
+                '<td><button id="' + pseudoUniqueId + '" class="fs-remove-button">Remove</button></td></tr>'
+            );
+            $('#' + pseudoUniqueId).click(function(e) {
+                micropythonFs.remove(filename);
+                updateFileTables();
+            });
         });
-    }
+        // Hide the table if it is empty
+        var fileRowsInTable = $('#fs-file-list>table>tbody').has('tr').length;
+        if (!fileRowsInTable) {
+            $('#fs-file-list>table').css('display', 'none');
+        } else {
+            $('#fs-file-list>table').css('display', '');
+        }
+        updateStorageBar();
+    };
 
     // Generates the text for a hex file with MicroPython and the user code
     function generateFullHexStr() {
         var fullHexStr = '';
         try {
-            micropythonFs.write('main.py', EDITOR.getCode());
+            // Remove main.py if editor content is empty to download a hex file
+            // that includes the filesystem but doesn't try to run any code
+            if (!EDITOR.getCode()) {
+                if (micropythonFs.exists('main.py')) {
+                    micropythonFs.remove('main.py');
+                }
+            } else {
+                micropythonFs.write('main.py', EDITOR.getCode());
+            }
+            // Generate hex file
             fullHexStr = micropythonFs.getIntelHex();
         } catch(e) {
             // We generate a user readable error here to be caught and displayed
@@ -550,35 +599,6 @@ function web_editor(config) {
 
     // Describes what to do when the load button is clicked.
     function doLoad() {
-        var updateTableVisibility = function() {
-            // Hide the table if it is empty
-            var fileRowsInTable = $('#fs-file-list>table>tbody').has('tr').length;
-            if (!fileRowsInTable) {
-                $('#fs-file-list>table').css('display', 'none');
-            } else {
-                $('#fs-file-list>table').css('display', '');
-            }
-        };
-
-        var fsAddFileTableRow = function(rowFilename) {
-            var pseudoUniqueId = Math.random().toString(36).substr(2, 9)
-            // Protect main.py so don't include it in the UI
-            if (rowFilename === 'main.py') return;
-            var fileType = (/[.]/.exec(rowFilename)) ? /[^.]+$/.exec(rowFilename) : "";
-            $('.fs-file-list table tbody').append(
-                '<tr id="row-' + pseudoUniqueId + '"><td>' + rowFilename + '</td>' +
-                '<td>' + fileType + '</td>' +
-                '<td>' + (micropythonFs.size(rowFilename)/1024).toFixed(2) + ' Kb</td>' +
-                '<td><button id="' + pseudoUniqueId + '" class="fs-remove-button">Remove</button></td></tr>'
-            );
-            $('#' + pseudoUniqueId).click(function(e){
-                micropythonFs.remove(rowFilename);
-                $('#row-' + pseudoUniqueId).remove();
-                updateStorageBar();
-                updateTableVisibility();
-            });
-        };
-
         var template = $('#load-template').html();
         Mustache.parse(template);
         vex.open({
@@ -599,47 +619,52 @@ function web_editor(config) {
                     vex.close();
                     EDITOR.focus();
                 });
-                $(vexContent).find('#load-form-form').on('submit', function(e){
+                $('#file-upload-link').click(function() {
+                    $('#file-upload-input').trigger('click');
+                });
+                $('#file-upload-input').on('change', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    if(e.target[0].files.length === 1) {
-                        var f = e.target[0].files[0];
-                        var ext = (/[.]/.exec(f.name)) ? /[^.]+$/.exec(f.name) : null;
-                        var reader = new FileReader();
-                        if (ext == 'py') {
-                            reader.onload = function(e) {
-                                loadPy(f.name, e.target.result);
-                            };
-                            reader.readAsText(f);
-                        } else if (ext == 'hex') {
-                            reader.onload = function(e) {
-                                loadHex(f.name, e.target.result);
-                            };
-                            reader.readAsText(f);
-                        }
+
+                    var inputFile = this;
+                    if (inputFile.files.length === 1) {
+                        var f = inputFile.files[0];
+                            var ext = (/[.]/.exec(f.name)) ? /[^.]+$/.exec(f.name) : null;
+                            var reader = new FileReader();
+                            if (ext == 'py') {
+                                reader.onload = function(e) {
+                                    loadPy(f.name, e.target.result);
+                                };
+                                reader.readAsText(f);
+                            } else if (ext == 'hex') {
+                                reader.onload = function(e) {
+                                    loadHex(f.name, e.target.result);
+                                };
+                                reader.readAsText(f);
+                            }
                     }
+                    inputFile.value = '';
                     vex.close();
                     EDITOR.focus();
                     return false;
                 });
-                $(vexContent).find('#fs-form').on('submit', function(e){
+                $('#fs-file-upload-button').click(function() {
+                    $('#fs-file-upload-input').trigger('click');
+                });
+                $('#fs-file-upload-input').on('change', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    var inputFile = e.target[1];
-                    var files = inputFile.files;
-                    filesystemAdd(files, function(addedFilename) {
-                        fsAddFileTableRow(addedFilename);
-                        updateStorageBar();
-                        updateTableVisibility();
+                    var inputFile = this;
+                    Array.from(inputFile.files).forEach(function(file) {
+                        var fileReader = new FileReader();
+                        fileReader.onload = function(e) {
+                            loadFileToFilesystem(file.name, new Uint8Array(e.target.result));
+                            updateFileTables();
+                        };
+                        fileReader.readAsArrayBuffer(file);
                     });
                     inputFile.value = '';
-                });
-                $('#fs-form-file-upload-button').click(function() {
-                    $('#fs-form-file-upload').trigger('click');
-                });
-                $('#fs-form-file-upload').on('change', function() {
-                    $('#fs-form-submit-button').trigger('click');
                 });
             }
         });
@@ -647,11 +672,7 @@ function web_editor(config) {
             $('.load-drag-target').toggle();
             $('.load-form').toggle();
         });
-        updateStorageBar();
-        micropythonFs.ls().forEach(function(filename) {
-            fsAddFileTableRow(filename);
-        });
-        updateTableVisibility();
+        updateFileTables();
     }
 
     // Triggered when a user clicks the blockly button. Toggles blocks on/off.
@@ -1001,7 +1022,8 @@ function web_editor(config) {
                         }, 200);
                */
     }
-
+    
+    // Join up the buttons in the user interface with some functions for
     // handling what to do when they're clicked.
     function setupButtons() {
         $("#command-download").click(function () {
