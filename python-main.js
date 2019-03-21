@@ -18,16 +18,88 @@ function pythonEditor(id) {
     editor.fontSizeStep = 4;
 
     // Represents the ACE based editor.
+    var langTools = ace.require("ace/ext/language_tools");
     var ACE = ace.edit(id);  // The editor is in the tag with the referenced id.
     ACE.setOptions({
-        enableSnippets: true  // Enable code snippets.
+        enableSnippets: true,  // Enable code snippets.
+        enableBasicAutocompletion: true, // Enable (automatic) autocompletion
+        enableLiveAutocompletion: true
     });
-    ACE.setTheme("ace/theme/kr_theme");  // Make it look nice.
+    ACE.$blockScrolling = Infinity; // Silences the 'blockScrolling' warning
+
+    var horizontalWordList = populateWordList();
+
+    var staticWordCompleter = {
+        identifierRegexps: [/[a-zA-Z_0-9\.\-\u00A2-\uFFFF]/],
+        getCompletions: function(editor, session, pos, prefix, callback) {
+            var wordList = horizontalWordList;
+            
+            callback(null, wordList.map(function(word) {
+                return {
+                    caption: word,
+                    value: word,
+                    meta: "static"
+                };
+            }));
+        }
+    }
+    langTools.addCompleter(staticWordCompleter);
+    
+    ACE.setTheme("ace/theme/kr_theme_legacy");  // Make it look nice.
     ACE.getSession().setMode("ace/mode/python");  // We're editing Python.
     ACE.getSession().setTabSize(4); // Tab=4 spaces.
     ACE.getSession().setUseSoftTabs(true); // Tabs are really spaces.
     ACE.setFontSize(editor.initialFontSize);
     editor.ACE = ACE;
+
+    // Add custom snippets
+    var snippetManager = ace.require("ace/snippets").snippetManager;
+    var microbitSnippets = [
+        '# Module Docstring',
+        'snippet docs - create a comment to describe your code',
+        '\t\'\'\'',
+        '\t${1:# TODO: write some helpful comments here...}',
+        '\t\'\'\'',
+        'snippet wh - while some condition is True, keep looping over some code',
+        '\twhile ${1:condition}:',
+        '\t\t${2:# TODO: write code...}',
+        'snippet with - do stuff with something assigned to a name',
+        '\twith ${1:something} as ${2:name}:',
+        '\t${3:# TODO: write code...}',
+        '# New Class',
+        'snippet cl - create a new class that defines the behaviour of a new type of object',
+        '\tclass ${1:ClassName}(${2:object}):',
+        '\t\t\"\"\"${3:docstring for $1}\"\"\"',
+        '\t\tdef __init__(self, ${4:arg}):',
+        '\t\t\t${5:super($1, self).__init__()}',
+        '\t\t\tself.$4 = $4',
+        '\t\t\t${6}',
+        '# New Function',
+        'snippet def - define a named function that takes some arguments and optionally add a description',
+        '\tdef ${1:name}(${2:arguments}):',
+        '\t\t\"\"\"${3:description for $1}\"\"\"',
+        '\t\t${4:# TODO: write code...}',
+        '# Ifs',
+        'snippet if - if some condition is True, do something',
+        '\tif ${1:condition}:',
+        '\t\t${2:# TODO: write code...}',
+        'snippet ei - else if some other condition is True, do something',
+        '\telif ${1:condition}:',
+        '\t\t${2:# TODO: write code...}',
+        'snippet el - else do some other thing',
+        '\telse:',
+        '\t\t${1:# TODO: write code...}',
+        '# For',
+        'snippet for - for each item in a collection of items do something with each item',
+        '\tfor ${1:item} in ${2:items}:',
+        '\t\t${3:# TODO: write code...}',
+        'snippet try - try doing something and handle exceptions (errors)',
+        '\ttry:',
+        '\t\t${1:# TODO: write code...}',
+        '\texcept ${2:Exception}, ${3:e}:',
+        '\t\t${4:raise $3}',
+        ''].join('\n');
+    snippetManager.register(snippetManager.parseSnippetFile(microbitSnippets), "microbit");
 
     // Gets the textual content of the editor (i.e. what the user has written).
     editor.getCode = function() {
@@ -52,13 +124,13 @@ function pythonEditor(id) {
     // Return details of all the snippets this editor knows about.
     editor.getSnippets = function() {
         var snippetManager = ace.require("ace/snippets").snippetManager;
-        return snippetManager.snippetMap.python;
+        return snippetManager.snippetMap.microbit;
     };
 
     // Triggers a snippet by name in the editor.
     editor.triggerSnippet = function(snippet) {
         var snippetManager = ace.require("ace/snippets").snippetManager;
-        snippet = snippetManager.snippetNameMap.python[snippet];
+        snippet = snippetManager.snippetNameMap.microbit[snippet];
         if (snippet) {
             snippetManager.insertSnippet(ACE, snippet.content);
         }
@@ -106,6 +178,93 @@ function pythonEditor(id) {
     return editor;
 }
 
+
+/*
+This code generates a list of words for the autocomplete.
+*/
+function populateWordList(){
+    var words = {
+        "microbit" : {
+            "Image" : ['ALL_CLOCKS', 'ANGRY', 'ARROW_E', 'ARROW_N', 'ARROW_NE', 'ARROW_NW', 'ARROW_S', 'ARROW_SE', 'ARROW_SW', 'ARROW_W', 'ASLEEP', 'BUTTERFLY', 'CHESSBOARD', 'CLOCK1', 'CLOCK10', 'CLOCK11', 'CLOCK12', 'CLOCK2', 'CLOCK3', 'CLOCK4', 'CLOCK5', 'CLOCK6', 'CLOCK7', 'CLOCK8', 'CLOCK9', 'CONFUSED', 'COW', 'DIAMOND', 'DIAMOND_SMALL', 'DUCK', 'FABULOUS', 'GHOST', 'GIRAFFE', 'HAPPY', 'HEART', 'HEART_SMALL', 'HOUSE', 'MEH', 'MUSIC_CROTCHET', 'MUSIC_QUAVER', 'MUSIC_QUAVERS', 'NO', 'PACMAN', 'PITCHFORK', 'RABBIT', 'ROLLERSKATE', 'SAD', 'SILLY', 'SKULL', 'SMILE', 'SNAKE', 'SQUARE', 'SQUARE_SMALL', 'STICKFIGURE', 'SURPRISED', 'SWORD', 'TARGET', 'TORTOISE', 'TRIANGLE', 'TRIANGLE_LEFT', 'TSHIRT', 'UMBRELLA', 'XMAS', 'YES'],
+            "pin0" : ["is_touched", "read_analog", "read_digital", "set_analog_period", "set_analog_period_microseconds", "write_analog", "write_digital"],
+            "pin1" : ["is_touched", "read_analog", "read_digital", "set_analog_period", "set_analog_period_microseconds", "write_analog", "write_digital"],
+            "pin2" : ["is_touched", "read_analog", "read_digital", "set_analog_period", "set_analog_period_microseconds", "write_analog", "write_digital"],
+            "pin3" : ["read_analog", "read_digital", "set_analog_period", "set_analog_period_microseconds", "write_analog", "write_digital"],
+            "pin4" : ["read_analog", "read_digital", "set_analog_period", "set_analog_period_microseconds", "write_analog", "write_digital"],
+            "pin5" : ["read_digital", "write_digital"],
+            "pin6" : ["read_digital", "write_digital"],
+            "pin7" : ["read_digital", "write_digital"],
+            "pin8" : ["read_digital", "write_digital"],
+            "pin9" : ["read_digital", "write_digital"],
+            "pin10" : ["read_analog", "read_digital", "set_analog_period", "set_analog_period_microseconds", "write_analog", "write_digital"],
+            "pin11" : ["read_digital", "write_digital"],
+            "pin12" : ["read_digital", "write_digital"],
+            "pin13" : ["read_digital", "write_digital"],
+            "pin14" : ["read_digital", "write_digital"],
+            "pin15" : ["read_digital", "write_digital"],
+            "pin16" : ["read_digital", "write_digital"],
+            "pin19" : ["read_digital", "write_digital"],
+            "pin20" : ["read_digital", "write_digital"],
+            "accelerometer" : ["current_gesture", "get_gestures", "get_values", "get_x", "get_y", "get_z", "was_gesture"],
+            "button_a" : ["get_presses", "is_pressed", "was_pressed"],
+            "button_b" : ["get_presses", "is_pressed", "was_pressed"],
+            "compass" : ["calibrate", "clear_calibration", "get_field_strength", "get_x", "get_y", "get_z", "heading", "is_calibrated"],
+            "display" : ["clear", "get_pixel", "is_on", "off", "on", "read_light_level", "scroll", "set_pixel", "show"],
+            "i2c" : ["init", "read", "scan", "write"],
+            "panic" : "",
+            "reset" : "",
+            "running_time" : "",
+            "sleep" : "",
+            "spi" : ["init", "read", "write", "write_readinto"],
+            "temperature" : "",
+            "uart" : ["any", "init", "read", "readall", "readline", "write"]
+        },
+        "audio" : ["play", "AudioFrame"],
+        "machine" : ["disable_irq", "enable_irq", "freq", "reset", "time_pulse_us", "unique_id"],
+        "micropython" : ["const", "heap_lock", "heap_unlock", "kbd_intr", "mem_info", "opt_level", "qstr_info", "stack_use"],
+        "music" : ["BADDY", "BA_DING", "BIRTHDAY", "BLUES", "CHASE", "DADADADUM", "ENTERTAINER", "FUNERAL", "FUNK", "JUMP_DOWN", "JUMP_UP", "NYAN", "ODE", "POWER_DOWN", "POWER_UP", "PRELUDE", "PUNCHLINE", "PYTHON", "RINGTONE", "WAWAWAWAA", "WEDDING", "get_tempo", "pitch", "play", "reset", "set_temp", "stop"],
+        "speech" : ["pronounce", "say", "sing", "translate"],
+        "radio" : ["RATE_1MBIT", "RATE_250KBIT", "RATE_2MBIT", "config", "off", "on", "receive", "receive_bytes", "receive_bytes_into", "receive_full", "reset", "send", "send_bytes"],
+        "os" : ["remove", "listdir", "size", "uname"],
+        "time" : ["sleep", "sleep_ms", "sleep_us", "ticks_ms", "ticks_us", "ticks_add", "ticks_diff"],
+        "utime" : ["sleep", "sleep_ms", "sleep_us", "ticks_ms", "ticks_us", "ticks_add", "ticks_diff"],
+        "ucollections" : ["namedtuple", "OrderedDict"],
+        "collections" : ["namedtuple", "OrderedDict"],
+        "array" : ["array"],
+        "math" : ["e", "pi", "sqrt", "pow", "exp", "log", "cos", "sin", "tan", "acos", "asin", "atan", "atan2", "ceil", "copysign", "fabs", "floor", "fmod", "frexp", "ldexp", "modf", "isfinite", "isinf", "isnan", "trunc", "radians", "degrees"],
+        "random" : ["getrandbits", "seed", "randrange", "randint", "choice", "random", "uniform"],
+        "ustruct" : ["calcsize", "pack", "pack_into", "unpack", "unpack_from"],
+        "struct" : ["calcsize", "pack", "pack_into", "unpack", "unpack_from"],
+        "sys" : ["version", "version_info", "implementation", "platform", "byteorder", "exit", "print_exception"],
+        "gc" : ["collect", "disable", "enable", "isenabled", "mem_free", "mem_alloc", "threshold"],
+        "neopixel" : {
+            "NeoPixel" : ["clear", "show"]
+        }
+    };
+
+    var wordsHorizontal = [];
+    Object.keys(words).forEach(function(module){
+        wordsHorizontal.push(module);
+        if (Array.isArray(words[module])){
+            words[module].forEach(function(func){
+                wordsHorizontal.push(module + "." + func);
+            });
+        }else{
+            Object.keys(words[module]).forEach(function(sub){
+                wordsHorizontal.push(module + "." + sub);
+                if (Array.isArray(words[module][sub])){
+                    words[module][sub].forEach(function(func){
+                        wordsHorizontal.push(module + "." + sub + "." + func);
+                        wordsHorizontal.push(sub + "." + func);
+                    });
+                }
+            });
+        }
+    });
+    return (wordsHorizontal);
+}
+
+
 /*
 The following code contains the various functions that connect the behaviour of
 the editor to the DOM (web-page).
@@ -115,8 +274,8 @@ See the comments in-line for more information.
 function web_editor(config) {
     'use strict';
 
-    // Instance of the pythonEditor object (the ACE text editor wrapper)
-    var EDITOR = pythonEditor('editor');
+    // Global (useful for testing) instance of the ACE wrapper object
+    window.EDITOR = pythonEditor('editor');
 
     // Indicates if there are unsaved changes to the content of the editor.
     var dirty = false;
@@ -738,7 +897,6 @@ function web_editor(config) {
     function doSnippets() {
         // Snippets are triggered by typing a keyword followed by pressing TAB.
         // For example, type "wh" followed by TAB.
-        var snippetManager = ace.require("ace/snippets").snippetManager;
         var template = $('#snippet-template').html();
         Mustache.parse(template);
         var context = {
@@ -747,7 +905,7 @@ function web_editor(config) {
             'instructions': config.translate.code_snippets.instructions,
             'trigger_heading': config.translate.code_snippets.trigger_heading,
             'description_heading': config.translate.code_snippets.description_heading,
-            'snippets': snippetManager.snippetMap.python,
+            'snippets': EDITOR.getSnippets(),
             'describe': function() {
                 return function(text, render) {
                     var name = render(text);
