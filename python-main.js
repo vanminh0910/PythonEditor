@@ -5,6 +5,7 @@ Feel free to have a look around! (We've commented the code so you can see what
 everything does.)
 */
 
+
 /*
 Returns an object that defines the behaviour of the Python editor. The editor
 is attached to the div with the referenced id.
@@ -327,23 +328,16 @@ function web_editor(config) {
         return fullHexStr;
     }
 
+
+
     // This function describes what to do when the download button is clicked.
     function doDownload() {
-        try {
-            var output = generateFullHexStr();
-        } catch(e) {
-            alert('Error:\n' + e.message);
-            return;
-        }
-        var ua = navigator.userAgent.toLowerCase();
-        if((ua.indexOf('safari/') > -1) && (ua.indexOf('chrome') == -1)) {
-            alert(config.translate.alerts.download);
-            window.open('data:application/octet;charset=utf-8,' + encodeURIComponent(output), '_newtab');
-        } else {
-            var filename = getName().replace(" ", "_");
-            var blob = new Blob([output], {type: "application/octet-stream"});
-            saveAs(blob, filename + ".hex");
-        }
+      webusb.sendFile(EDITOR.getCode()/*, 'main.py', true*/).then( () => {
+        console.log('Downloaded successfully');
+      }, error => {
+        console.log(error);
+        alert('Failed to donwload');
+      })
     }
 
     // This function describes what to do when the save button is clicked.
@@ -431,6 +425,23 @@ function web_editor(config) {
         });
     }
 
+    // This function describes what to do when the download button is clicked.
+    function doConnect() {
+      webusb.connect().then( () => {
+        $('#status').text('Disconnect');
+        console.log('Connected');
+        webusb.onReceive = data => {
+          console.log(data);
+        }
+        webusb.onReceiveError = error => {
+          console.log(error);
+        };
+      }, error => {
+        $('#status').text('Connect');
+        console.log(error);
+      });
+    }
+
     // Triggered when a user clicks the blockly button. Toggles blocks on/off.
     function doBlockly() {
         var blockly = $('#blockly');
@@ -450,7 +461,8 @@ function web_editor(config) {
                     return;
                 }
             }
-            editor.ACE.setReadOnly(true);
+            //$('#editor').hide();
+            //editor.ACE.setReadOnly(true);
             $('#editor').attr('title', 'The code editor is read-only when blocks are active.');
             $("#command-snippet").off('click');
             $("#command-snippet").click(function () {
@@ -458,7 +470,7 @@ function web_editor(config) {
             });
             $("#command-snippet").addClass('disabled');
             blockly.show();
-            blockly.css('width', '33%');
+            blockly.css('width', '60%');
             blockly.css('height', '100%');
             if(blockly.find('div.injectionDiv').length === 0) {
                 // Calculate initial zoom level
@@ -474,6 +486,12 @@ function web_editor(config) {
                         scaleSpeed: zoomScaleSteps + 1.0
                     }
                 });
+
+                var workspaceBlocks = document.getElementById("workspaceBlocks"); 
+
+                /* Load blocks to workspace. */
+                Blockly.Xml.domToWorkspace(workspaceBlocks, workspace);
+                
                 var myUpdateFunction = function(event) {
                     var code = Blockly.Python.workspaceToCode(workspace);
                     EDITOR.setCode(code);
@@ -617,6 +635,9 @@ function web_editor(config) {
         $("#command-load").click(function () {
             doLoad();
         });
+        $("#command-connect").click(function () {
+          doConnect();
+        });
         $("#command-blockly").click(function () {
             doBlockly();
         });
@@ -698,3 +719,21 @@ function web_editor(config) {
     checkVersion(qs);
     setupButtons();
 }
+
+
+(function() {
+    'use strict';
+  
+    document.addEventListener('DOMContentLoaded', event => {  
+        webusb.connectDefault().then( () => {
+        $('#status').text('Disconnect');
+        console.log('Connected');
+        webusb.onReceive = data => {
+          //console.log(data);
+        }
+        webusb.onReceiveError = error => {
+          //console.log(error);
+        };
+      });      
+    });
+  })();
