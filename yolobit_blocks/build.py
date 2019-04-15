@@ -111,14 +111,11 @@ goog.require('Blockly.Msg');
 """)
 
 CATEGORIES = [
-    {'name': 'basic'},
-    {'name': 'input'},
-    {'name': 'music'},
-    {'name': 'led'},
-    {'name': 'loops'},
-    {'name': 'logic'},
-    {'name': 'variables'},
-    {'name': 'math'}
+    {'name': 'basic', 'colour': '#1e90ff'},
+    {'name': 'input', 'colour': '#d400d4'},
+    {'name': 'music', 'colour': '#e63022'},
+    {'name': 'led', 'colour': '#5d2c91'},
+    {'name': 'pins', 'colour': '#b22222'}
 ]
 
 
@@ -129,13 +126,21 @@ def get_categories(path='definitions'):
     files = sorted([f for f in listdir(path) if
              isfile(join(path, f)) and f.endswith('.js')])
     result = []
+    for c in CATEGORIES:
+        with open(join(path, c['name'] + '.js')) as def_file:
+            result.append({
+              'name': c['name'], #f.replace('.js', '').capitalize(),
+              'colour': c['colour'],
+              'definitions': json.loads(def_file.read())
+            })
+    """
     for f in files:
         with open(join(path, f)) as def_file:
             result.append({
               'name': f.replace('.js', '').capitalize(),
               'definitions': json.loads(def_file.read())
             })
-    #print(result[0])
+    """
     return result
 
 
@@ -219,9 +224,9 @@ def main(languages):
     categories = get_categories()
     colour = 0
     step = 360 // len(categories)
-    for i, category in enumerate(categories):
-        category['colour'] = colour
-        colour = step * (i + 1)
+    #for i, category in enumerate(categories):
+        #category['colour'] = colour
+        #colour = step * (i + 1)
     for lang in languages:
         lang_content = []
         lang_content.append(LANGUAGE_HEAD.substitute(language=lang))
