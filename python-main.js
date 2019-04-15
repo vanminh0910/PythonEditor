@@ -470,7 +470,7 @@ function web_editor(config) {
             });
             $("#command-snippet").addClass('disabled');
             blockly.show();
-            blockly.css('width', '60%');
+            blockly.css('width', '35%');
             blockly.css('height', '100%');
             if(blockly.find('div.injectionDiv').length === 0) {
                 // Calculate initial zoom level

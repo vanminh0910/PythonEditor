@@ -1,0 +1,46 @@
+<xml id="blockly-toolbox" style="display: none">
+  <category name="Basic" colour="0">
+    <block type="yolobit_basic_scroll_number"><value name="message"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="yolobit_basic_scroll_text"><value name="message"><shadow type="text"><field name="TEXT">Hello, World!</field></shadow></value></block>
+    <block type="yolobit_basic_show_image"></block>
+    <block type="yolobit_basic_image_builtins"></block>
+    <block type="yolobit_basic_create_image"></block>
+    <block type="yolobit_basic_sleep"><value name="duration"><shadow type="math_number"><field name="NUM">1000</field></shadow></value></block>
+    <block type="yolobit_basic_clear_display"></block>
+    <block type="yolobit_basic_forever"></block>
+  </category>
+  <category name="Input" colour="72">
+    <block type="yolobit_input_button_is_pressed"></block>
+    <block type="yolobit_input_button_get_presses"></block>
+    <block type="yolobit_input_pin_touched"></block>
+    <block type="yolobit_input_accelerometer_get_value"></block>
+    <block type="yolobit_input_gesture_detected"></block>
+    <block type="yolobit_input_running_time"></block>
+    <block type="yolobit_input_get_temperature"></block>
+    <block type="yolobit_input_get_light_level"></block>
+  </category>
+  <category name="Led" colour="144">
+    <block type="yolobit_led_set_xy"><value name="X"><shadow type="math_number"><field name="NUM">1</field></shadow></value><value name="Y"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
+    <block type="yolobit_led_clear_xy"><value name="X"><shadow type="math_number"><field name="NUM">1</field></shadow></value><value name="Y"><shadow type="math_number"><field name="NUM">1</field></shadow></value></block>
+    <block type="yolobit_led_set_all"></block>
+    <block type="yolobit_led_show_graph"><value name="VALUE"><shadow type="math_number"><field name="NUM">0</field></shadow></value><value name="MAX"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="yolobit_led_set_brightness"><value name="BRIGHTNESS"><shadow type="math_number"><field name="NUM">100</field></shadow></value></block>
+  </category>
+  <category name="Music" colour="216">
+    <block type="yolobit_music_play_built_in"></block>
+    <block type="yolobit_music_pitch"></block>
+    <block type="yolobit_music_play_list_of_notes"></block>
+    <block type="yolobit_music_reset"></block>
+    <block type="yolobit_music_stop"></block>
+    <block type="yolobit_music_set_tempo"><value name="ticks"><shadow type="math_number"><field name="NUM">0</field></shadow></value><value name="bpm"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="yolobit_music_get_tempo"></block>
+  </category>
+  <category name="Pins" colour="288">
+    <block type="yolobit_pin_touched"></block>
+    <block type="yolobit_pin_read_analog"></block>
+    <block type="yolobit_pin_write_analog"><value name="output"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="yolobit_pin_read_digital"></block>
+    <block type="yolobit_pin_write_digital"><value name="output"><shadow type="math_number"><field name="NUM">0</field></shadow></value></block>
+    <block type="yolobit_pin_onoff_value"></block>
+  </category>
+</xml>
