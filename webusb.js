@@ -142,6 +142,7 @@ var webusb = {};
   webusb.requestPort = function() {
     const filters = [
       { 'vendorId': 0x2341, 'productId': 0x8037 },
+      { 'vendorId': 0x10c4, 'productId': 0xea60 }
     ];
     return navigator.usb.requestDevice({ 'filters': filters }).then(
       device => new webusb.Port(device)

@@ -253,7 +253,7 @@ function web_editor(config) {
             EDITOR.focus();
         } else {
             // If there's no name, default to something sensible.
-            setName("microbit");
+            setName("main.py");
             // If there's no description, default to something sensible.
             setDescription("A MicroPython script");
             // A sane default starting point for a new script.
@@ -332,8 +332,13 @@ function web_editor(config) {
 
     // This function describes what to do when the download button is clicked.
     function doDownload() {
-      webusb.sendFile(EDITOR.getCode()/*, 'main.py', true*/).then( () => {
-        console.log('Downloaded successfully');
+      var scriptName = $('#script-name').text();
+      if (scriptName == 'microbit')
+        scriptName = 'main.py';
+      //console.log(scriptName);
+      //webusb.sendFile(EDITOR.getCode()).then( () => {
+      webusb.sendFile(EDITOR.getCode(), scriptName, false).then( () => {
+        console.log('Downloaded successfully: ' + scriptName);
       }, error => {
         console.log(error);
         alert('Failed to donwload');
@@ -427,19 +432,31 @@ function web_editor(config) {
 
     // This function describes what to do when the download button is clicked.
     function doConnect() {
-      webusb.connect().then( () => {
-        $('#status').text('Disconnect');
-        console.log('Connected');
-        webusb.onReceive = data => {
-          console.log(data);
-        }
-        webusb.onReceiveError = error => {
+      if ($('#status').text() == 'Disconnect') {
+        webusb.disconnect().then( () => {
+          $('#status').text('Connect');
+          console.log('DisConnected');
+        }, error => {
+          $('#status').text('Connect');
           console.log(error);
-        };
-      }, error => {
-        $('#status').text('Connect');
-        console.log(error);
-      });
+        });
+      } else {
+        webusb.connect().then( () => {
+          $('#status').text('Disconnect');
+          console.log('Connected');
+          webusb.onReceive = data => {
+            console.log(data);
+          }
+          webusb.onReceiveError = error => {
+            console.log(error);
+            $('#status').text('Connect');
+          };
+        }, error => {
+          $('#status').text('Connect');
+          console.log(error);
+        });
+      }
+      
     }
 
     // Triggered when a user clicks the blockly button. Toggles blocks on/off.
